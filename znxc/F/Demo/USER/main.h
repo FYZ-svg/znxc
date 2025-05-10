@@ -1,0 +1,1 @@
+extern int adc_value[8];

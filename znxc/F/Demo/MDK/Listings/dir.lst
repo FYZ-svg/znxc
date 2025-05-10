@@ -1,0 +1,88 @@
+C251 COMPILER V5.60.0,  dir                                                                04/09/24  12:53:33  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE dir
+OBJECT MODULE PLACED IN .\Objects\dir.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\CODE\dir.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;..\U
+                    -SER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\dir.lst) TABS(2) OBJECT(.\Objects\dir.ob
+                    -j) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2            float temp=0;
+    3            float KD2=0;
+    4            float cha_speed=0;
+    5            float K_p1 = 0,K_p2 = 0,Z_Kp1=270,Z_Kp2 = 250,W_Kp1 = 480,W_Kp2=470,W_KD =265,Z_KD=255;
+    6          float  Kp_Select(float error)
+    7          {
+    8   1        return fabs(error)*50;
+    9   1      }
+   10          void Dir_Loop(float error,float speed_goal,int flag)
+   11          {   
+   12   1      
+   13   1        if(flag==normal||flag==cross)
+   14   1        {
+   15   2          {
+   16   3          K_p1 = Z_Kp1;  
+   17   3          K_p2 = Z_Kp2;
+   18   3      
+   19   3          dir_loop_pid.ek =  error;//Ò»°ãÊýÖµÔÚÖ±µÀºÍÍäµÀµÄÊ±ºòÊýÖµ¶¼ÊÇÐ¡ÓÚ0.4,µ±taµ½ÁËÖ±½ÇµÄÊ±ºò,Õâ¸öÊýÖµ¾Í»áÍ
+             -»Ôö,Ôö¼Óµ½1ÒÔÉÏ
+   20   3          temp=fabs(dir_loop_pid.ek)*dir_loop_pid.ek* K_p2+ //Õâ¸öÊ½×ÓÊÇÖ±½Ç×ªÏòµÄ¹Ø¼ü  //KP2Ò»°ãÊÇÐ¡ÓÚKP1
+   21   3              K_p1 *dir_loop_pid.ek
+   22   3        //  -Single_Angle_Get()
+   23   3              +dir_loop_pid.KD * Z_KD*(dir_loop_pid.ek - dir_loop_pid.ek_1);
+   24   3              dir_loop_pid.ek_1=dir_loop_pid.ek;
+   25   3              cha_speed=temp;
+   26   3          motor_L_pid.SetValue=speed_goal-cha_speed;
+   27   3          motor_R_pid.SetValue=speed_goal+cha_speed;
+   28   3        }
+   29   2        }
+   30   1        else
+   31   1        {
+   32   2          {
+   33   3          K_p1 = W_Kp1; 
+   34   3          K_p2 = W_Kp2;
+   35   3          dir_loop_pid.ek =  error;//Ò»°ãÊýÖµÔÚÖ±µÀºÍÍäµÀµÄÊ±ºòÊýÖµ¶¼ÊÇÐ¡ÓÚ0.4,µ±taµ½ÁËÖ±½ÇµÄÊ±ºò,Õâ¸öÊýÖµ¾Í»áÍ
+             -»Ôö,Ôö¼Óµ½1ÒÔÉÏ
+   36   3          temp=fabs(dir_loop_pid.ek)*dir_loop_pid.ek* K_p2+ //Õâ¸öÊ½×ÓÊÇÖ±½Ç×ªÏòµÄ¹Ø¼ü  //KP2Ò»°ãÊÇÐ¡ÓÚKP1
+   37   3              K_p1 *dir_loop_pid.ek
+   38   3              +Single_Angle_Get()*0
+   39   3              +dir_loop_pid.KD * W_KD*(dir_loop_pid.ek - dir_loop_pid.ek_1);
+   40   3        dir_loop_pid.ek_1=dir_loop_pid.ek;
+   41   3              cha_speed=temp;
+   42   3          motor_L_pid.SetValue=speed_goal-cha_speed*1.5;
+   43   3          motor_R_pid.SetValue=speed_goal+cha_speed*1.5;
+   44   3        }
+   45   2        }
+   46   1      
+   47   1      }
+   48          
+   49          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       309     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+C251 COMPILER V5.60.0,  dir                                                                04/09/24  12:53:33  PAGE 2   
+
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        44          2
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        88     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

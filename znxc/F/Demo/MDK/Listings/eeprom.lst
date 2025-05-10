@@ -1,0 +1,1121 @@
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE eeprom
+OBJECT MODULE PLACED IN .\Objects\eeprom.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\CODE\eeprom.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;.
+                    -.\USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\eeprom.lst) TABS(2) OBJECT(.\Objects\
+                    -eeprom.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "eeprom.h"
+    3          float pitch_angle = 10;
+    4          float yaw_angle = 10;
+    5          float roll_angle = 10;
+    6          float AngleTh = 30;
+    7          uint16 PodaoFlag = 0; 
+    8          uint16 BarrierFlag = 0;
+    9          uint16 RingFlag = 0;
+   10          uint8 datapage = 0;//0：显示ID对应的函数，1：修改arrow对应的参数
+   11          float mul = 1;
+   12          int Pm=0;
+   13          int f_lag = 0;
+   14          
+   15          //**************************************************************************//
+   16          //**************************************************************************//
+   17          //定义按键引脚
+   18          #define KEY1    P74  
+   19          #define KEY2    P77     
+   20          #define KEY3    P52        
+   21          #define KEY4    P61     
+   22          #define KEY5    P46
+   23          #define Switch_Pin_1       P76
+   24          #define Switch_Pin_2       P75
+   25          
+   26          typedef enum
+   27          {
+   28            key1_flag = 1,
+   29            key2_flag = 2,
+   30            key3_flag = 3,
+   31            key4_flag = 4,
+   32            key5_flag = 5
+   33          };
+   34          
+   35          
+   36          //***************函数宏定义****(下面这些函数请修改宏定义为对应的GPIO库函数操作)***********
+   37          #define KEY_INT(key_x)           gpio_mode(key_x,GPO_PP)//配置为GPO_PP:推挽输出 
+   38          #define SWITCH_INT(switch_x)     gpio_mode(switch_x,GPO_PP)//配置为GPO_PP:推挽输出
+   39          #define READ_GPIO(Pin_X)         Pin_X
+   40          #define TiaoCan_DelayMs(M_S)     delay_ms(M_S)   //延时函数
+   41          
+   42          //开关状态变量
+   43          int key1_status = 1,key2_status = 1,key3_status = 1, key4_status = 1,key5_status = 1;
+   44          //上一次开关状态变量
+   45          int key1_last_status, key2_last_status, key3_last_status, key4_last_status,key5_last_status;
+   46          //开关标志位
+   47          //uint8 key1_flag=0,key2_flag=0,key3_flag=0, key4_flag=0,key5_flag=0;
+   48          unsigned char Switch1=0,Switch2=0;
+   49          
+   50          void Switch_Init()
+   51          {
+   52   1        //拨码开关初始化  （无需修改，请勿修改）
+   53   1        SWITCH_INT(Switch_Pin_1) ;
+   54   1        SWITCH_INT(Switch_Pin_2) ;
+   55   1      }
+   56          
+   57          int Temp_Swtich=0;
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 2   
+
+   58          void Strategy_Slect()
+   59          {
+   60   1        
+   61   1        //读取拨码开关状态
+   62   1            if(!READ_GPIO(Switch_Pin_1))
+   63   1            {
+   64   2              Switch1=1;
+   65   2              //Pm=1;
+   66   2              UI();
+   67   2            }
+   68   1            if(!READ_GPIO (Switch_Pin_2))
+   69   1            {
+   70   2              Switch2=1;
+   71   2              ips114_print();
+*** WARNING C140 IN LINE 71 OF ..\CODE\eeprom.c: 'ips114_print' undefined; assuming 'extern int ips114_print()'
+   72   2            }
+   73   1      }
+   74          
+   75          void Key_Init()
+   76          {
+   77   1        //按键初始化 （无需修改，请勿修改）
+   78   1        KEY_INT(KEY1);
+   79   1        KEY_INT(KEY2);
+   80   1        KEY_INT(KEY3);
+   81   1        KEY_INT(KEY4);
+   82   1        KEY_INT(KEY5);
+   83   1      }
+   84          uint8  Key_Scan_Deal ()                         
+   85          {
+   86   1          //使用此方法优点在于，不需要使用while(1) 等待，避免处理器资源浪费
+   87   1          //保存按键状态
+   88   1          key1_last_status = key1_status;
+   89   1          key2_last_status = key2_status;
+   90   1          key3_last_status = key3_status;
+   91   1          key4_last_status = key4_status;
+   92   1          key5_last_status = key5_status;
+   93   1        
+   94   1          //读取当前按键值
+   95   1          key1_status = KEY1;
+   96   1          key2_status = KEY2;
+   97   1          key3_status = KEY3;
+   98   1          key4_status = KEY4;
+   99   1          key5_status = KEY5;
+  100   1        
+  101   1          delay_ms(10);
+  102   1          //检测到按键按下之后   并放开置位标志位
+  103   1          if(key1_status && !key1_last_status)  return key1_flag;
+  104   1          else if(key2_status && !key2_last_status)  return key2_flag;
+  105   1          else if (key3_status && !key3_last_status)  return key3_flag;
+  106   1          else if(key4_status && !key4_last_status)  return key4_flag;
+  107   1          else if(key5_status && !key5_last_status)  return key5_flag;
+  108   1          else return 0;
+  109   1          
+  110   1          
+  111   1      }
+  112          
+  113          
+  114          
+  115          
+  116          //********************************************************//
+  117          //********************************************************//
+  118          int8 arrow = 0;//定义光标所在的行，初始化在第一行
+  119          void DisplayCursor()
+  120          {
+  121   1        ips114_showstr(0,arrow,">");//在参数前面显示>
+  122   1      }
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 3   
+
+  123          
+  124          void UI()
+  125          {
+  126   1        if(!datapage)
+  127   1        {
+  128   2          UI_Content();//显示ID对应的函数
+  129   2          UI_ContentKey();//更新ID
+  130   2        }
+  131   1        else
+  132   1        {
+  133   2          UI_Datapage();  //数据页
+  134   2          UI_DatapageKey();   //数据按键处理
+  135   2        }
+  136   1        DisplayCursor();//光标显示
+  137   1      }
+  138          
+  139          ////用来显示各级菜单
+  140          uint8 pagenum = 0;//显示page的数目
+  141          //int8 arrow = 0;//定义光标所在的行，初始化在第一行
+  142          int8 PageClear = 0;
+  143          void UI_Content(void)
+  144          {
+  145   1        
+  146   1        // 根据pagenum去显示菜单
+  147   1        
+  148   1        switch(pagenum)
+  149   1          {
+  150   2          case 0://显示主菜单
+  151   2            //ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  152   2          {
+  153   3            DisplayMain();
+  154   3          }break;
+  155   2          case 1://电机PID
+  156   2          {
+  157   3            MotorPara();
+  158   3            if(PageClear != pagenum)
+  159   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  160   3            PageClear = pagenum;
+  161   3          }break;
+  162   2          case 2://转向PID
+  163   2          {
+  164   3            TrackPara();
+  165   3            if(PageClear != pagenum)
+  166   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  167   3            PageClear = pagenum;
+  168   3          }break;
+  169   2          case 3://速度设定
+  170   2          {
+  171   3            SpeedPara();
+  172   3          if(PageClear != pagenum)
+  173   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  174   3          PageClear = pagenum;
+  175   3          }break;
+  176   2          case 4://避障
+  177   2          {
+  178   3            BiZhang();
+  179   3            if(PageClear != pagenum)
+  180   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  181   3            PageClear = pagenum;
+  182   3          }break;
+  183   2          case 5://左环
+  184   2          {
+  185   3            L_CirPara();
+  186   3            if(PageClear != pagenum)
+  187   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  188   3            PageClear = pagenum;
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 4   
+
+  189   3          }break;
+  190   2          case 6://右环
+  191   2          {
+  192   3            R_CirPara();
+  193   3            if(PageClear != pagenum)
+  194   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  195   3            PageClear = pagenum;
+  196   3          }break;
+  197   2          case 7:
+  198   2          {
+  199   3            DisplayBarrierPara();
+  200   3            if(PageClear != pagenum)
+  201   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  202   3            PageClear = pagenum;
+  203   3          }break;
+  204   2          case 8:
+  205   2          {
+  206   3            DisplayPodaoPara();
+  207   3            if(PageClear != pagenum)
+  208   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  209   3            PageClear = pagenum;
+  210   3          }break;
+  211   2          default:
+  212   2          {
+  213   3            DisplayMain();  
+  214   3          }break;
+  215   2        }
+  216   1      }
+  217          //返回上一级菜单
+  218          uint8 pagenumup(void)
+  219          {
+  220   1        switch(pagenum)
+  221   1        {
+  222   2          case 0://在一级菜单
+  223   2            return 0;
+  224   2          case 1://在一级菜单
+  225   2            return 0;
+  226   2          case 2://在一级菜单
+  227   2            return 0;
+  228   2          case 3://在一级菜单
+  229   2            return 0;
+  230   2          case 4://在一级菜单
+  231   2            return 0;
+  232   2          case 5://在一级菜单
+  233   2            return 0;
+  234   2          //这里解释一下，当在二级菜单ID=6时，返回的上一级是ID=5
+  235   2          //
+  236   2          case 6://在二级菜单
+  237   2            return 5;
+  238   2          case 7://在二级菜单
+  239   2            return 5;
+  240   2          case 8://在二级菜单
+  241   2            return 5;
+  242   2          
+  243   2          default:
+  244   2            return 0;
+  245   2        }
+  246   1      }
+  247          
+  248          //进入下一级菜单
+  249          //需要判断当前ID：知道在那一页，有些什么参数
+  250          //还需要判断光标所在行：知道要进入哪一个变量里面
+  251          uint8 pagenumdown(void)
+  252          {
+  253   1        switch(pagenum)
+  254   1        {
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 5   
+
+  255   2          case 0://在主界面
+  256   2          {
+  257   3            switch(arrow)//判断在第几行
+  258   3            {
+  259   4              case 0://在第0行---->对应着参数LeftMotorPara
+  260   4              {
+  261   5                return 1;//返回LeftMotorPara的ID
+  262   5              }
+  263   4              case 1: return 2;//对应RightMotorPara
+  264   4              case 2: return 3;//对应ServoPara
+  265   4              case 3: return 4;//对应IMUPara
+  266   4              case 4: return 5;//对应ElemnetPara
+  267   4            }
+  268   3          }break;
+  269   2          case 1://在LeftMotorPara界面
+  270   2          {
+  271   3            return 1;//返回当前界面
+  272   3            //在该界面下没有下一级，就直接break;
+  273   3          }break;
+  274   2          case 2: return 2;break;//在RightMotorPara界面
+  275   2          case 3: return 3;break;//ServoPara界面
+  276   2          case 4: return 4;break;//IMUPara界面
+  277   2          case 5://ElemnetPara界面
+  278   2          {
+  279   3            switch(arrow)
+  280   3            {
+  281   4              case 0: return 6;//对应Ring
+  282   4              case 1: return 7;//对应Barrier
+  283   4              case 2: return 8;//对应podao
+  284   4              default : return 5;//返回当前界面
+  285   4            }
+  286   3          }break;
+  287   2          
+  288   2          default:break;
+  289   2        }
+  290   1      }
+  291          
+  292          
+  293          //接收按键值，并更新arrow
+  294          void UI_ContentKey()
+  295          {
+  296   1        int8 key = 0 ;
+  297   1            key = Key_Scan_Deal();//获取按键值
+  298   1          if(key == key1_flag)
+  299   1            {//向上 up
+  300   2              ips114_showstr(0,arrow," ");  //需要将当前行的光标隐藏，不然当arrow更新之后，出现两行显示光标
+  301   2              arrow--;
+  302   2              //向上移动，arrow减小
+  303   2            }
+  304   1      //    ips114_showuint16(40,7,key);
+  305   1          if(key == key2_flag){//向下 down
+  306   2              ips114_showstr(0,arrow," ");  arrow++;                                                           
+             -                               
+  307   2          }//和up同理
+  308   1        
+  309   1      /**********上面的key1,key2是用来上下移动光标的***********/
+  310   1      /**********下面的key3,key4是用来进入相应的父/子菜单的***********/
+  311   1      
+  312   1          if(key == key3_flag){//进入子页面  enter
+  313   2          ips114_clear(WHITE);//需要将当前显示清屏，用于显示子界面    
+  314   2          pagenum = pagenumdown();//进入子界面 
+  315   2          arrow = 0;//从第0行开始
+  316   2        }
+  317   1          if(key == key4_flag){//返回上一个页面 back
+  318   2          ips114_clear(WHITE);    
+  319   2          pagenum = pagenumup();
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 6   
+
+  320   2          arrow = 0;
+  321   2        }
+  322   1        if(key == key5_flag)//更改参数
+  323   1        {
+  324   2          ips114_clear(WHITE);    
+  325   2          datapage = 1;    
+  326   2          mul = 1;
+  327   2        }
+  328   1        
+  329   1        //对arrow限幅，OLED屏只能显示8行，所以需要限制 0 <= arrow <8
+  330   1        if(arrow < 0)
+  331   1          arrow = 7;//意思是：当按下up键，光标一直向上移动，当运动到第一行即arrow=0，
+  332   1                //再按下up时，光标直接跳到最后一行，arrow = 7
+  333   1        else if(arrow >7)
+  334   1          arrow = 0;
+  335   1      
+  336   1      }
+  337          
+  338          //显示具体的参数
+  339          int arrow_Clear = 0;
+  340          void UI_Datapage()
+  341          {
+  342   1        uint8 x = 8,y = 80;
+  343   1        //ips114_clear(WHITE);
+  344   1        switch(pagenum)
+  345   1        {
+  346   2          case 0:break;//在ID为0的界面没有需要修改的参数
+  347   2          case 1://对应LeftMotorPara
+  348   2          {
+  349   3            switch(arrow)
+  350   3            {
+  351   4              case 0://kp
+  352   4              {
+  353   5                
+  354   5                ips114_showstr(x,0,"L_Mkp"); 
+  355   5                ips114_showfloat(y,0,motor_L_pid.KP,3,3);
+  356   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  357   5      
+  358   5                if(arrow_Clear != arrow)
+  359   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  360   5                arrow_Clear = arrow;
+  361   5              }break;
+  362   4              case 1://ki
+  363   4              {
+  364   5                ips114_showstr(x,0,"L_Mki"); 
+  365   5                ips114_showfloat(y,0,motor_R_pid.KP,3,3);
+  366   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  367   5      
+  368   5                if(arrow_Clear != arrow)
+  369   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  370   5                arrow_Clear = arrow;
+  371   5              }break;
+  372   4              case 2://kd
+  373   4              {
+  374   5                ips114_showstr(x,0,"D_Mkd"); 
+  375   5                ips114_showfloat(y,0,motor_L_pid.KD,3,3);
+  376   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  377   5      
+  378   5                if(arrow_Clear != arrow)
+  379   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  380   5                arrow_Clear = arrow;
+  381   5              }break;
+  382   4              case 3:
+  383   4              {
+  384   5                ips114_showstr(x,0,"R_Mkp"); 
+  385   5                ips114_showfloat(y,0,motor_R_pid.KD,3,3);
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 7   
+
+  386   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  387   5                
+  388   5                if(arrow_Clear != arrow)
+  389   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  390   5                arrow_Clear = arrow;
+  391   5              }break;
+  392   4              case 4://TargetSpeed
+  393   4              {
+  394   5                ips114_showstr(x,0,"R_Mki"); 
+  395   5                ips114_showfloat(y,0,motor_L_pid.KI,3,3);
+  396   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  397   5                
+  398   5                if(arrow_Clear != arrow)
+  399   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  400   5                arrow_Clear = arrow;
+  401   5              }break;
+  402   4              case 5:
+  403   4              {
+  404   5                ips114_showstr(x,0,"R_Mkd"); 
+  405   5                ips114_showfloat(y,0,motor_R_pid.KI,3,3);
+  406   5                ips114_showfloat(40,7,mul,8,4);//显示倍率   
+  407   5      
+  408   5                if(arrow_Clear != arrow)
+  409   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  410   5                arrow_Clear = arrow;
+  411   5              }break;
+  412   4              default:break;
+  413   4            }
+  414   3            if(PageClear != pagenum)
+  415   3              ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  416   3            PageClear = pagenum;
+  417   3          }break;
+  418   2          
+  419   2          case 2://对应RightMotorPara
+  420   2          {
+  421   3            switch(arrow)
+  422   3            {
+  423   4              case 0://kp
+  424   4              {
+  425   5                ips114_showstr(x,0,"Z_Kp1"); 
+  426   5                ips114_showfloat(y,0,Z_Kp1,3,3);
+  427   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  428   5      
+  429   5                if(arrow_Clear != arrow)
+  430   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  431   5                arrow_Clear = arrow;
+  432   5              }break;
+  433   4              case 1://ki
+  434   4              {
+  435   5                ips114_showstr(x,0,"Z_Kp2"); 
+  436   5                ips114_showfloat(y,0,Z_Kp2,3,3);
+  437   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  438   5      
+  439   5                if(arrow_Clear != arrow)
+  440   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  441   5                arrow_Clear = arrow;
+  442   5              }break;
+  443   4              case 2://kd
+  444   4              {
+  445   5                ips114_showstr(x,0,"W_Kp1"); 
+  446   5                ips114_showfloat(y,0,W_Kp1,3,3);
+  447   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  448   5      
+  449   5                if(arrow_Clear != arrow)
+  450   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  451   5                arrow_Clear = arrow;
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 8   
+
+  452   5              }break;
+  453   4              case 3: 
+  454   4              {
+  455   5                ips114_showstr(x,0,"W_Kp2"); 
+  456   5                ips114_showfloat(y,0,W_Kp2,3,3);
+  457   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  458   5      
+  459   5                if(arrow_Clear != arrow)
+  460   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  461   5                arrow_Clear = arrow;
+  462   5              }
+  463   4              break;
+  464   4              case 4://TargetSpeed
+  465   4              {
+  466   5                ips114_showstr(x,0,"Z_KD"); 
+  467   5                ips114_showfloat(y,0,Z_KD,3,3);
+  468   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  469   5      
+  470   5                if(arrow_Clear != arrow)
+  471   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  472   5                arrow_Clear = arrow;
+  473   5              }break;
+  474   4              case 5:
+  475   4              {
+  476   5                ips114_showstr(x,0,"W_KD"); 
+  477   5                ips114_showfloat(y,0,W_KD,3,3);
+  478   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  479   5      
+  480   5                if(arrow_Clear != arrow)
+  481   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  482   5                arrow_Clear = arrow;
+  483   5              }break;
+  484   4              default:break;
+  485   4            }
+  486   3            ips114_showfloat(40,7,mul,8,4);//显示倍率
+  487   3          }break;
+  488   2          case 3://对应ServoPara
+  489   2          {
+  490   3            switch(arrow)
+  491   3            {
+  492   4              case 0://kp
+  493   4              {
+  494   5                ips114_showstr(x,0,"Zhi"); 
+  495   5                ips114_showfloat(y,0,Zhi,3,3);
+  496   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  497   5      
+  498   5                if(arrow_Clear != arrow)
+  499   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  500   5                arrow_Clear = arrow;
+  501   5              }break;
+  502   4              case 1://ki
+  503   4              {
+  504   5                ips114_showstr(x,0,"Wan"); 
+  505   5                ips114_showfloat(y,0,Wan,3,3);
+  506   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  507   5      
+  508   5                if(arrow_Clear != arrow)
+  509   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  510   5                arrow_Clear = arrow;
+  511   5              }break;
+  512   4              case 2://kd
+  513   4              {
+  514   5                ips114_showstr(x,0,"Shi"); 
+  515   5                ips114_showfloat(y,0,Shi,3,3);
+  516   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  517   5      
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 9   
+
+  518   5                if(arrow_Clear != arrow)
+  519   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  520   5                arrow_Clear = arrow;
+  521   5              }break;
+  522   4              case 3:
+  523   4              {
+  524   5                ips114_showstr(x,0,"BZ_sp3"); 
+  525   5                ips114_showfloat(y,0,BZ_sp3,4,3);
+  526   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  527   5      
+  528   5                if(arrow_Clear != arrow)
+  529   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  530   5                arrow_Clear = arrow;
+  531   5              }break;
+  532   4              case 4:
+  533   4              {
+  534   5                ips114_showstr(x,0,"BZ_err3"); 
+  535   5                ips114_showfloat(y,0,BZ_err3,3,3);
+  536   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  537   5      
+  538   5                if(arrow_Clear != arrow)
+  539   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  540   5                arrow_Clear = arrow;
+  541   5              }break;
+  542   4              case 5:
+  543   4              {
+  544   5                ips114_showstr(x,0,"BZ_sum3"); 
+  545   5                ips114_showfloat(y,0,BZ_sum3,4,3);
+  546   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  547   5      
+  548   5                if(arrow_Clear != arrow)
+  549   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  550   5                arrow_Clear = arrow;
+  551   5              }break;
+  552   4              case 6:
+  553   4              {
+  554   5                ips114_showstr(x,0,"BZ_dis3"); 
+  555   5                ips114_showfloat(y,0,BZ_dis3,4,3);
+  556   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  557   5      
+  558   5                if(arrow_Clear != arrow)
+  559   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  560   5                arrow_Clear = arrow;
+  561   5              }break;
+  562   4              default:break;
+  563   4            }
+  564   3            ips114_showfloat(40,7,mul,8,4);//显示倍率
+  565   3          }break;     
+  566   2          case 4:
+  567   2          {
+  568   3            switch(arrow)
+  569   3            {
+  570   4              case 0:
+  571   4              {
+  572   5                ips114_showstr(x,0,"BZ_sp1"); 
+  573   5                ips114_showfloat(y,0,BZ_sp1,4,3);
+  574   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  575   5      
+  576   5                if(arrow_Clear != arrow)
+  577   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  578   5                arrow_Clear = arrow;
+  579   5              }break; 
+  580   4              case 1:
+  581   4              {
+  582   5                ips114_showstr(x,0,"BZ_err1"); 
+  583   5                ips114_showfloat(y,0,BZ_err1,4,3);
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 10  
+
+  584   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  585   5      
+  586   5                if(arrow_Clear != arrow)
+  587   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  588   5                arrow_Clear = arrow;
+  589   5              }break;
+  590   4              case 2:
+  591   4              {
+  592   5                ips114_showstr(x,0,"BZ_sum1"); 
+  593   5                ips114_showfloat(y,0,BZ_sum1,4,3);
+  594   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  595   5      
+  596   5                if(arrow_Clear != arrow)
+  597   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  598   5                arrow_Clear = arrow;
+  599   5              }break;
+  600   4              case 3:
+  601   4              {
+  602   5                ips114_showstr(x,0,"BZ_dis1"); 
+  603   5                ips114_showfloat(y,0,BZ_dis1,4,3);
+  604   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  605   5      
+  606   5                if(arrow_Clear != arrow)
+  607   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  608   5                arrow_Clear = arrow;
+  609   5              }break;
+  610   4              case 4:
+  611   4              {
+  612   5                ips114_showstr(x,0,"BZ_sp2"); 
+  613   5                ips114_showfloat(y,0,BZ_sp2,4,3);
+  614   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  615   5      
+  616   5                if(arrow_Clear != arrow)
+  617   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  618   5                arrow_Clear = arrow;
+  619   5              }break;
+  620   4              case 5:
+  621   4              {
+  622   5                ips114_showstr(x,0,"BZ_err2"); 
+  623   5                ips114_showfloat(y,0,BZ_err2,4,3);
+  624   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  625   5      
+  626   5                if(arrow_Clear != arrow)
+  627   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  628   5                arrow_Clear = arrow;
+  629   5              }break;
+  630   4              case 6:
+  631   4              {
+  632   5                ips114_showstr(x,0,"BZ_sum2"); 
+  633   5                ips114_showfloat(y,0,BZ_sum2,4,3);
+  634   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  635   5      
+  636   5                if(arrow_Clear != arrow)
+  637   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  638   5                arrow_Clear = arrow;
+  639   5              }break;
+  640   4              case 7:
+  641   4              {
+  642   5                ips114_showstr(x,0,"BZ_dis2"); 
+  643   5                ips114_showfloat(y,0,BZ_dis2,5,3);
+  644   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  645   5      
+  646   5                if(arrow_Clear != arrow)
+  647   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  648   5                arrow_Clear = arrow;
+  649   5              }break;
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 11  
+
+  650   4              default:break;
+  651   4            }
+  652   3            ips114_showfloat(40,7,mul,8,4);//显示倍率
+  653   3          }break;
+  654   2          case 5:
+  655   2          {
+  656   3            switch(arrow)
+  657   3            {
+  658   4              case 0:
+  659   4              {
+  660   5                ips114_showstr(x,0,"LC_dis1"); 
+  661   5                ips114_showfloat(y,0,LC_dis1,4,3);
+  662   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  663   5      
+  664   5                if(arrow_Clear != arrow)
+  665   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  666   5                arrow_Clear = arrow;
+  667   5              }break; 
+  668   4              case 1:
+  669   4              {
+  670   5                ips114_showstr(x,0,"LC_err2"); 
+  671   5                ips114_showfloat(y,0,LC_err2,4,3);
+  672   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  673   5      
+  674   5                if(arrow_Clear != arrow)
+  675   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  676   5                arrow_Clear = arrow;
+  677   5              }break;
+  678   4              case 2:
+  679   4              {
+  680   5                ips114_showstr(x,0,"LC_sum2"); 
+  681   5                ips114_showfloat(y,0,LC_sum2,4,3);
+  682   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  683   5      
+  684   5                if(arrow_Clear != arrow)
+  685   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  686   5                arrow_Clear = arrow;
+  687   5              }break;
+  688   4              case 3:
+  689   4              {
+  690   5                ips114_showstr(x,0,"LC_sum3"); 
+  691   5                ips114_showfloat(y,0,LC_sum3,4,3);
+  692   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  693   5      
+  694   5                if(arrow_Clear != arrow)
+  695   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  696   5                arrow_Clear = arrow;
+  697   5              }break;
+  698   4              case 4:
+  699   4              {
+  700   5                ips114_showstr(x,0,"LC_dis4"); 
+  701   5                ips114_showfloat(y,0,LC_dis4,4,3);
+  702   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  703   5      
+  704   5                if(arrow_Clear != arrow)
+  705   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  706   5                arrow_Clear = arrow;
+  707   5              }break;
+  708   4              default:break;
+  709   4            }
+  710   3              ips114_showfloat(40,7,mul,8,4);//显示倍率
+  711   3          }break;
+  712   2          case 6:
+  713   2          {
+  714   3            switch(arrow)
+  715   3            {
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 12  
+
+  716   4              case 0:
+  717   4              {
+  718   5                ips114_showstr(x,0,"RC_dis1"); 
+  719   5                ips114_showfloat(y,0,RC_dis1,4,3);
+  720   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  721   5      
+  722   5                if(arrow_Clear != arrow)
+  723   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  724   5                arrow_Clear = arrow;
+  725   5              }break; 
+  726   4              case 1:
+  727   4              {
+  728   5                ips114_showstr(x,0,"RC_err2"); 
+  729   5                ips114_showfloat(y,0,RC_err2,4,3);
+  730   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  731   5      
+  732   5                if(arrow_Clear != arrow)
+  733   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  734   5                arrow_Clear = arrow;
+  735   5              }break;
+  736   4              case 2:
+  737   4              {
+  738   5                ips114_showstr(x,0,"RC_sum2"); 
+  739   5                ips114_showfloat(y,0,RC_sum2,4,3);
+  740   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  741   5      
+  742   5                if(arrow_Clear != arrow)
+  743   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  744   5                arrow_Clear = arrow;
+  745   5              }break;
+  746   4              case 3:
+  747   4              {
+  748   5                ips114_showstr(x,0,"RC_sum3"); 
+  749   5                ips114_showfloat(y,0,RC_sum3,4,3);
+  750   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  751   5      
+  752   5                if(arrow_Clear != arrow)
+  753   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  754   5                arrow_Clear = arrow;
+  755   5              }break;
+  756   4              case 4:
+  757   4              {
+  758   5                ips114_showstr(x,0,"RC_dis4"); 
+  759   5                ips114_showfloat(y,0,RC_dis4,4,3);
+  760   5                ips114_showfloat(40,7,mul,8,4);//显示倍率
+  761   5      
+  762   5                if(arrow_Clear != arrow)
+  763   5                ips114_clear(WHITE);//在显示新一级菜单时，需要清屏
+  764   5                arrow_Clear = arrow;
+  765   5              }break;
+  766   4              default:break;
+  767   4            }
+  768   3              ips114_showfloat(40,7,mul,8,4);//显示倍率
+  769   3          }break;
+  770   2          case 7://对应BarrierPara
+  771   2          {
+  772   3            //自行添加变量
+  773   3            
+  774   3          }break;
+  775   2          case 8://对应podaoPara
+  776   2          {
+  777   3            //自行添加变量
+  778   3          }break;
+  779   2          
+  780   2          default:break;
+  781   2        }
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 13  
+
+  782   1      }
+  783          
+  784          ////更改参数
+  785          void UI_DatapageKey()
+  786          {
+  787   1        uint8 key = Key_Scan_Deal();
+  788   1        if(key == key1_flag)//   +
+  789   1        {
+  790   2          switch(pagenum)//判断在哪一页
+  791   2          {
+  792   3            case 1://LeftMotorPara
+  793   3            {
+  794   4              switch(arrow)//哪一行
+  795   4              {
+  796   5                case 0:motor_L_pid.KP += mul;break;
+  797   5                case 1:motor_R_pid.KP += mul;break;
+  798   5                case 2:motor_L_pid.KD += mul;break;
+  799   5                case 3:motor_R_pid.KD += mul;break;
+  800   5                case 4:motor_L_pid.KI += mul;break;
+  801   5                case 5:motor_R_pid.KI += mul;break;
+  802   5                default:break;
+  803   5              }
+  804   4            }break;
+  805   3            case 2://RightMotorPara
+  806   3            {
+  807   4              switch(arrow)
+  808   4              {
+  809   5                case 0:Z_Kp1 += mul;break;
+  810   5                case 1:Z_Kp2 += mul;break;
+  811   5                case 2:W_Kp1 += mul;break;
+  812   5                case 3:W_Kp2 += mul;break;
+  813   5                case 4:Z_KD += mul;break;
+  814   5                case 5:W_KD += mul;break;
+  815   5                default:break;
+  816   5              }
+  817   4            }break;
+  818   3            case 3://ServoPara
+  819   3            {
+  820   4              switch(arrow)
+  821   4              {
+  822   5                case 0:Zhi += mul;break;
+  823   5                case 1:Wan += mul;break;
+  824   5                case 2:Shi += mul;break;
+  825   5                case 3:BZ_sp3 += mul;break;
+  826   5                case 4:BZ_err3 += mul;break;
+  827   5                case 5:BZ_sum3 += mul;break;
+  828   5                case 6:BZ_dis3 += mul;break;
+  829   5                default:break;
+  830   5              }
+  831   4            }break;
+  832   3            case 4:
+  833   3            {
+  834   4              switch(arrow)
+  835   4              {
+  836   5                case 0:BZ_sp1 += mul;break;
+  837   5                case 1:BZ_err1 += mul;break;
+  838   5                case 2:BZ_sum1 += mul;break;
+  839   5                case 3:BZ_dis1 += mul;break;
+  840   5                case 4:BZ_sp2 += mul;break;
+  841   5                case 5:BZ_err2 += mul;break;
+  842   5                case 6:BZ_sum2 += mul;break;
+  843   5                case 7:BZ_dis2 += mul;break;
+  844   5                default:break;
+  845   5              }
+  846   4            }     
+  847   3            case 5:
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 14  
+
+  848   3            {
+  849   4              switch(arrow)
+  850   4              {
+  851   5                case 0:LC_dis1 += mul;break;
+  852   5                case 1:LC_err2 += mul;break;
+  853   5                case 2:LC_sum2 += mul;break;
+  854   5                case 3:LC_sum3 += mul;break;
+  855   5                case 4:LC_dis4 += mul;break;
+  856   5                default:break;
+  857   5              }
+  858   4            }
+  859   3            case 6:
+  860   3            {
+  861   4              switch(arrow)
+  862   4              {
+  863   5                case 0:RC_dis1 += mul;break;
+  864   5                case 1:RC_err2 += mul;break;
+  865   5                case 2:RC_sum2 += mul;break;
+  866   5                case 3:RC_sum3 += mul;break;
+  867   5                case 4:RC_dis4 += mul;break;
+  868   5                default:break;
+  869   5              }
+  870   4            }
+  871   3            default:break;
+  872   3          }
+  873   2        }
+  874   1        if(key == key2_flag)// -
+  875   1         {
+  876   2          switch(pagenum)//判断在哪一页
+  877   2          {
+  878   3            case 1://LeftMotorPara
+  879   3            {
+  880   4              switch(arrow)//哪一行
+  881   4              {
+  882   5                case 0:motor_L_pid.KP -= mul;break;
+  883   5                case 1:motor_R_pid.KP -= mul;break;
+  884   5                case 2:motor_L_pid.KD -= mul;break;
+  885   5                case 3:motor_R_pid.KD -= mul;break;
+  886   5                case 4:motor_L_pid.KI -= mul;break;
+  887   5                case 5:motor_R_pid.KI -= mul;break;
+  888   5                default:break;
+  889   5              }
+  890   4            }break;
+  891   3            case 2://RightMotorPara
+  892   3            { 
+  893   4              switch(arrow) 
+  894   4              {
+  895   5                case 0:Z_Kp1 -= mul;break;
+  896   5                case 1:Z_Kp2 -= mul;break;
+  897   5                case 2:W_Kp1 -= mul;break;
+  898   5                case 3:W_Kp2 -= mul;break;
+  899   5                case 4:Z_KD -= mul;break;
+  900   5                case 5:W_KD -= mul;break;
+  901   5                default:break;
+  902   5              }
+  903   4            }break;
+  904   3            case 3://ServoPara
+  905   3            {
+  906   4              switch(arrow)
+  907   4              {
+  908   5                case 0:Zhi -= mul;break;
+  909   5                case 1:Wan -= mul;break;
+  910   5                case 2:Shi -= mul;break;
+  911   5                case 3:BZ_sp3 -= mul;break;
+  912   5                case 4:BZ_err3 -= mul;break;
+  913   5                case 5:BZ_sum3 -= mul;break;
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 15  
+
+  914   5                case 6:BZ_dis3 -= mul;break;
+  915   5                default:break;
+  916   5              }
+  917   4            }break;
+  918   3            case 4:
+  919   3            {
+  920   4              switch(arrow)
+  921   4              {
+  922   5                case 0:BZ_sp1 -= mul;break;
+  923   5                case 1:BZ_err1 -= mul;break;
+  924   5                case 2:BZ_sum1 -= mul;break;
+  925   5                case 3:BZ_dis1 -= mul;break;
+  926   5                case 4:BZ_sp2 -= mul;break;
+  927   5                case 5:BZ_err2 -= mul;break;
+  928   5                case 6:BZ_sum2 -= mul;break;
+  929   5                case 7:BZ_dis2 -= mul;break;
+  930   5                default:break;
+  931   5              }
+  932   4            }
+  933   3            case 5:
+  934   3            {
+  935   4              switch(arrow)
+  936   4              {
+  937   5                case 0:LC_dis1 -= mul;break;
+  938   5                case 1:LC_err2 -= mul;break;
+  939   5                case 2:LC_sum2 -= mul;break;
+  940   5                case 3:LC_sum3 -= mul;break;
+  941   5                case 4:LC_dis4 -= mul;break;
+  942   5                default:break;
+  943   5              }       
+  944   4            }
+  945   3            case 6:
+  946   3            {
+  947   4              switch(arrow)
+  948   4              {
+  949   5                case 0:RC_dis1 -= mul;break;
+  950   5                case 1:RC_err2 -= mul;break;
+  951   5                case 2:RC_sum2 -= mul;break;
+  952   5                case 3:RC_sum3 -= mul;break;
+  953   5                case 4:RC_dis4 -= mul;break;
+  954   5                default:break;
+  955   5              }
+  956   4            }     
+  957   3            default:break;
+  958   3          }
+  959   2        }
+  960   1      if(key == key3_flag)//更改倍率
+  961   1          {
+  962   2              mul = mul / 10;
+  963   2          }
+  964   1      if(key == key4_flag)// 确认更改参数
+  965   1          {
+  966   2              mul = mul * 10;
+  967   2          }
+  968   1      if(key == key5_flag)
+  969   1        {
+  970   2          datapage = 0;
+  971   2        }
+  972   1        
+  973   1      }
+  974          
+  975          void DisplayMain(void)
+  976          {
+  977   1        //ips114_showstr(0,0,">"); 
+  978   1        ips114_showstr(8,0,"1.MotorPara");//左电机参数        
+  979   1        ips114_showstr(8,1,"2.TrackPara");//右电机参数        
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 16  
+
+  980   1        ips114_showstr(8,2,"3.SpeedPara");//舵机参数           
+  981   1        ips114_showstr(8,3,"4.BiZhang");//IMU参数            
+  982   1        ips114_showstr(8,4,"5.L_CirPara");//元素参数          
+  983   1        ips114_showstr(8,5,"6.R_CirPara");//启动 
+  984   1      }
+  985          void MotorPara(void)      
+  986          {
+  987   1        ips114_showstr(8,0,"L_Mkp");        ips114_showfloat(70,0,motor_L_pid.KP,4,3);  
+  988   1        ips114_showstr(8,1,"R_Mkp");        ips114_showfloat(70,1,motor_R_pid.KP,4,3);
+  989   1        ips114_showstr(8,2,"L_Mkd");        ips114_showfloat(70,2,motor_L_pid.KD,4,3);  
+  990   1        ips114_showstr(8,3,"R_Mkd");        ips114_showfloat(70,3,motor_R_pid.KD,4,3);
+  991   1        ips114_showstr(8,4,"L_Mki");        ips114_showfloat(70,4,motor_L_pid.KI,4,3);
+  992   1        ips114_showstr(8,5,"R_Mki");        ips114_showfloat(70,5,motor_R_pid.KI,4,3);
+  993   1      }
+  994          void TrackPara(void)
+  995          {
+  996   1        ips114_showstr(8,0,"Z_Kp1");        ips114_showfloat(70,0,Z_Kp1,4,3);
+  997   1        ips114_showstr(8,1,"Z_Kp2");        ips114_showfloat(70,1,Z_Kp2,4,3);
+  998   1        ips114_showstr(8,2,"W_Kp1");        ips114_showfloat(70,2,W_Kp1,4,3);
+  999   1        ips114_showstr(8,3,"W_Kp2");        ips114_showfloat(70,3,W_Kp2,4,3);
+ 1000   1        ips114_showstr(8,4,"Z_KD");         ips114_showfloat(70,4,Z_KD,4,3); 
+ 1001   1        ips114_showstr(8,5,"W_KD");         ips114_showfloat(70,5,W_KD,4,3);  
+ 1002   1      }
+ 1003          void SpeedPara(void)
+ 1004          {
+ 1005   1        ips114_showstr(8,0,"Zhi");          ips114_showfloat(70,0,Zhi,4,3);
+ 1006   1        ips114_showstr(8,1,"Wan");          ips114_showfloat(70,1,Wan,4,3);
+ 1007   1        ips114_showstr(8,2,"Shi");          ips114_showfloat(70,2,Shi,4,3); 
+ 1008   1        ips114_showstr(8,3,"BZ_sp3");       ips114_showfloat(70,3,BZ_sp3,4,3);
+ 1009   1        ips114_showstr(8,4,"BZ_err3");      ips114_showfloat(70,4,BZ_err3,4,3);
+ 1010   1        ips114_showstr(8,5,"BZ_sum3");      ips114_showfloat(70,5,BZ_sum3,4,3);
+ 1011   1        ips114_showstr(8,6,"BZ_dis3");      ips114_showfloat(70,6,BZ_dis3,4,3);
+ 1012   1      }
+ 1013          void BiZhang(void)
+ 1014          {
+ 1015   1        ips114_showstr(8,0,"BZ_sp1");     ips114_showfloat(70,0,BZ_sp1,4,3);
+ 1016   1        ips114_showstr(8,1,"BZ_err1");    ips114_showfloat(70,1,BZ_err1,4,3);
+ 1017   1        ips114_showstr(8,2,"BZ_sum1");    ips114_showfloat(70,2,BZ_sum1,4,3);
+ 1018   1        ips114_showstr(8,3,"BZ_dis1");    ips114_showfloat(70,3,BZ_dis1,4,3);
+ 1019   1        ips114_showstr(8,4,"BZ_sp2");     ips114_showfloat(70,4,BZ_sp2,4,3);
+ 1020   1        ips114_showstr(8,5,"BZ_err2");    ips114_showfloat(70,5,BZ_err2,4,3);
+ 1021   1        ips114_showstr(8,6,"BZ_sum2");    ips114_showfloat(70,6,BZ_sum2,4,3);
+ 1022   1        ips114_showstr(8,7,"BZ_dis2");    ips114_showfloat(70,7,BZ_dis2,5,3);
+ 1023   1      }
+ 1024          void L_CirPara(void)
+ 1025          {
+ 1026   1        ips114_showstr(8,0,"LC_dis1");    ips114_showfloat(70,0,LC_dis1,4,3);
+ 1027   1        ips114_showstr(8,1,"LC_err2");    ips114_showfloat(70,1,LC_err2,4,3);
+ 1028   1        ips114_showstr(8,2,"LC_sum2");    ips114_showfloat(70,2,LC_sum2,4,3);
+ 1029   1        ips114_showstr(8,3,"LC_sum3");    ips114_showfloat(70,3,LC_sum3,4,3);
+ 1030   1        ips114_showstr(8,4,"LC_dis4");    ips114_showfloat(70,4,LC_dis4,4,3);
+ 1031   1      }
+ 1032          void R_CirPara(void)
+ 1033          {
+ 1034   1        ips114_showstr(8,0,"RC_dis1");    ips114_showfloat(70,0,RC_dis1,4,3);
+ 1035   1        ips114_showstr(8,1,"RC_err2");    ips114_showfloat(70,1,RC_err2,4,3);
+ 1036   1        ips114_showstr(8,2,"RC_sum2");    ips114_showfloat(70,2,RC_sum2,4,3);
+ 1037   1        ips114_showstr(8,3,"RC_sum3");    ips114_showfloat(70,3,RC_sum3,4,3);
+ 1038   1        ips114_showstr(8,4,"RC_dis4");    ips114_showfloat(70,4,RC_dis4,4,3);
+ 1039   1      }
+ 1040          void DisplayBarrierPara(void)
+ 1041          {
+ 1042   1        ips114_showstr(8,0,"BarrierFlag");    //ips114_showint16(80,0,BarrierFlag);
+ 1043   1      }
+ 1044          void DisplayPodaoPara(void)
+ 1045          {
+C251 COMPILER V5.60.0,  eeprom                                                             04/09/24  12:53:36  PAGE 17  
+
+ 1046   1        ips114_showstr(8,0,"PodaoFlag");      //ips114_showint16(80,0
+ 1047   1      }
+ 1048          
+*** WARNING C180 IN LINE 290 OF ..\CODE\eeprom.c: 'pagenumdown': not every path returns a value
+*** WARNING C180 IN LINE 290 OF ..\CODE\eeprom.c: 'pagenumdown': not every path returns a value
+*** WARNING C183 IN LINE 342 OF ..\CODE\eeprom.c: dead assignment eliminated
+*** WARNING C183 IN LINE 342 OF ..\CODE\eeprom.c: dead assignment eliminated
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      8023     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        60     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       499     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  5 WARNING(S),  0 ERROR(S)

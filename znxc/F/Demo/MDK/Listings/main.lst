@@ -1,0 +1,118 @@
+C251 COMPILER V5.60.0,  main                                                               04/09/24  12:53:36  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\USER\main.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;..\
+                    -USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main
+                    -.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           * COPYRIGHT NOTICE
+    3           * Copyright (c) 2023,杰智易科技
+    4           * All rights reserved.
+    5           * 以下所有内容版权均属杰智易所有，未经允许不得用于商业用途，
+    6           * @file          main
+    7           * @company       南京杰智易科技有限公司
+    8           * @author        杰智易科技
+    9           * @version       查看doc内version文件 版本说明
+   10           * @Software    MDK FOR C251 V5.60
+   11           * @Target core   STC32G12K128
+   12           * @date          2023-11-30
+   13           ********************************************************************************************************
+             -************/
+   14          #include "headfile.h"
+   15          #include "speed.h"
+   16          //float cs_motor_l_pid[3]={50,10.5,15};//float cs_motor_r_pid[3]={50,10,0};
+   17          //float cs_motor_r_pid[3]={50,10.5,15};
+   18          //float cs_dir_loop_pid[3]={160,0,300};
+   19          int adc_value[8]={0};
+   20          
+   21          //float sum=0;
+   22          float speed=0;
+   23          
+   24          int16 P05_C;
+   25          int main()
+   26          {
+   27   1        board_init();
+   28   1        
+   29   1        
+   30   1        pit_timer_ms(TIM_1,5); 
+   31   1      //  pit_timer_ms(TIM_4,5);
+   32   1        NVIC_SetPriority( TIMER1_IRQn,2);
+   33   1        NVIC_SetPriority( UART4_IRQn,3);  
+   34   1        InitPID();
+   35   1          delay_ms(500);
+   36   1          EnableGlobalIRQ(); // 开启总中断 
+   37   1          motor_L_pid.SetValue=0;
+   38   1          motor_R_pid.SetValue=0;
+   39   1           // int xL,xR,yT,yB;
+   40   1            //int errorX,errorY;
+   41   1        while(1)
+   42   1        {
+   43   2            
+   44   2      //      P05_C = adc_once(ADC_P05,ADC_12BIT);
+   45   2      //      if(P05_C > 2600) duty(L_C,R_C);
+   46   2      //      else duty(-L_C,-R_C);
+   47   2      //    
+   48   2          
+   49   2          /*  errorX = xL - xR;
+   50   2            errorY = yT - yB;
+   51   2            if(errorX > 0){
+   52   2              errorX *= 10;
+   53   2              duty(L,R+errorX);
+   54   2            }
+   55   2            else(errorx < 0){
+C251 COMPILER V5.60.0,  main                                                               04/09/24  12:53:36  PAGE 2   
+
+   56   2              errorX *= -10;
+   57   2              duty(L+errorX,R);
+   58   2            }
+   59   2            if(errorY > 0){
+   60   2              errorY *= 10;
+   61   2              duty(L+errorY,R);
+   62   2            }
+   63   2            else if(errorY < 0){
+   64   2              errorY *= -10;
+   65   2              duty(L,errorY+R);
+   66   2            }
+   67   2            
+   68   2            duty_set(9999,9999);      */
+   69   2            
+   70   2          
+   71   2          //P52=0;
+   72   2            //P67=1;
+   73   2          //printf("%d\r\n",dl1a_distance_mm);
+   74   2          //printf("%f\r\n",Single_Angle_Get());
+   75   2        //  printf("%d\r     ",encoder_L_get());
+   76   2        //  printf("     %d\r\n",encoder_R_get());
+   77   2        }
+   78   1      }
+   79          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =        57     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        22     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        28     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,75 @@
+C251 COMPILER V5.60.0,  ips114                                                             04/09/24  13:33:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE ips114
+OBJECT MODULE PLACED IN .\Objects\ips114.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\CODE\ips114.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;.
+                    -.\USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\ips114.lst) TABS(2) OBJECT(.\Objects\
+                    -ips114.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          void ips114_print()
+    3          {
+    4   1      //printf("%d  %d  %d  %d  \r\n",adc_value[0],adc_value[1],adc_value[2],adc_value[3]);
+    5   1      
+    6   1      ////    ips114_showuint16(0,5,Pm);
+    7   1          //ips114_showuint16(0,0,P_5);
+    8   1          ips114_showuint16(0,1,L_S_Adc);
+    9   1          //ips114_showfloat(0,2,R_S_Adc);
+   10   1          ips114_showuint16(0,2,R_S_Adc);
+   11   1          ips114_showuint16(0,3,R_Adc);
+   12   1          ips114_showuint16(0,4,M_Adc);
+   13   1          ips114_showfloat(0,5,Erro,5,2);
+   14   1      //    ips114_showfloat(0,6,motor_L_pid.SetValue,5,2);
+   15   1      //    ips114_showfloat(0,7,motor_R_pid.SetValue,5,2);
+   16   1      //    ips114_showuint16(0,0,adc_once(ADC_P05,ADC_12BIT));
+   17   1      //  ips114_showuint16(0,1,adc_once(ADC_P14,ADC_12BIT));
+   18   1      //  ips114_showuint16(0,0,adc_once(ADC_P05,ADC_12BIT));
+   19   1      //  ips114_showuint16(0,1,adc_once(ADC_P14,ADC_12BIT));
+   20   1      //  ips114_showuint16(0,2,adc_once(ADC_P16,ADC_12BIT));
+   21   1      //  ips114_showuint16(0,3,adc_once(ADC_P13,ADC_12BIT));
+   22   1          //ips114_showuint16(0,3,adc_once(ADC_P00,ADC_12BIT));
+   23   1      //    ips114_showuint16(0,0,l_speed_add_temp);
+   24   1      //    ips114_showuint16(0,1,r_speed_add_temp);
+   25   1      //    ips114_showuint16(0,4,imu660ra_gyro_x);
+   26   1      //    ips114_showuint16(0,5,imu660ra_gyro_y);
+   27   1      //    ips114_showuint16(0,6,imu660ra_gyro_z);
+   28   1      //    ips114_showuint16(0,5,typee);
+   29   1      //    ips114_showint16(0,6,Sum_Distance);
+   30   1      //    ips114_showint16(0,7,Sum_Angle);
+   31   1          
+   32   1      //          ips114_showuint16(0,0,dl1a_distance_mm);
+   33   1                //ips114_showuint16(0,0,Sum_Angle);
+   34   1                //ips114_showuint16(0,1,Sum_Distance);
+   35   1                //ips114_showfloat(0,2,Single_Angle_Get(),5,2);,
+   36   1      //          ips114_showfloat(0,5,imu660ra_gyro_transition(imu660ra_gyro_x),5,2);
+   37   1      //          ips114_showfloat(0,6,imu660ra_gyro_x,5,2);
+   38   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       125     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+C251 COMPILER V5.60.0,  ips114                                                             04/09/24  13:33:28  PAGE 2   
+
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

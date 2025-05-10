@@ -1,0 +1,143 @@
+C251 COMPILER V5.60.0,  pid                                                                04/09/24  12:53:35  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE pid
+OBJECT MODULE PLACED IN .\Objects\pid.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\CODE\pid.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;..\U
+                    -SER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\pid.lst) TABS(2) OBJECT(.\Objects\pid.ob
+                    -j) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          PID motor_L_pid={0};
+    3          PID motor_R_pid={0};
+    4          PID speed_ctrl_pid={0};
+    5          PID dir_loop_pid={0};
+    6          void pid_set(float *arr,PID *pid)
+    7          {
+    8   1        pid->KP=arr[0];
+    9   1        pid->KI=arr[1];
+   10   1        pid->KD=arr[2];
+   11   1      }
+   12          
+   13          void InitPID(void)
+   14          {
+   15   1          motor_L_pid.SetValue  = 0.0;
+   16   1          motor_L_pid.ActValue  = 0.0;
+   17   1          motor_L_pid.KP      =2.6;   //1.6的时候跑着会突然一卡一卡
+   18   1          motor_L_pid.KI      =0;
+   19   1          motor_L_pid.KD      =120;
+   20   1          motor_L_pid.ek      = 0.0;
+   21   1          motor_L_pid.ek_1    = 0.0;
+   22   1          motor_L_pid.ek_2    = 0.0;
+   23   1          motor_L_pid.ek_sum    = 0.0;
+   24   1          motor_L_pid.PIDmax    = 1200;
+   25   1          motor_L_pid.PIDmin    = -1200;
+   26   1          motor_L_pid.PIDout    = 0;
+   27   1      
+   28   1          motor_R_pid.SetValue  = 0.0;
+   29   1          motor_R_pid.ActValue  = 0.0;
+   30   1          motor_R_pid.KP      =2.6;    //1.6的时候跑着会突然一卡一卡
+   31   1                  motor_R_pid.KI      =0;
+   32   1          motor_R_pid.KD      =120; 
+   33   1          motor_R_pid.ek      = 0.0;
+   34   1          motor_R_pid.ek_1    = 0.0;
+   35   1          motor_R_pid.ek_2    = 0.0;
+   36   1          motor_R_pid.ek_sum    = 0.0;
+   37   1          motor_R_pid.PIDmax    = motor_L_pid.PIDmax;
+   38   1          motor_R_pid.PIDmin    = motor_L_pid.PIDmin;
+   39   1      //    motor_R_pid.Sum_max   = motor_L_pid.Sum_max;
+   40   1      //    motor_R_pid.Sum_min   = motor_L_pid.Sum_min;
+   41   1          motor_R_pid.PIDout    = 0;
+   42   1      
+   43   1          dir_loop_pid.SetValue =   0.00;
+   44   1          dir_loop_pid.ActValue =   0.00;
+   45   1          dir_loop_pid.KP       =   340;
+   46   1          dir_loop_pid.KI       =   0;
+   47   1          dir_loop_pid.KD       =   1;//KP
+   48   1          dir_loop_pid.ek       =   0.00;
+   49   1          dir_loop_pid.ek_1     =   0.00;
+   50   1          dir_loop_pid.ek_2     =   0.00;
+   51   1          dir_loop_pid.ek_sum   =   0.00;
+   52   1          dir_loop_pid.Sum_max  =   1.00;
+   53   1          dir_loop_pid.Sum_min  =   -1.00;
+   54   1          dir_loop_pid.PIDmax   =   30.00;
+   55   1          dir_loop_pid.PIDmin   =   -30.00;
+   56   1      }
+   57          
+C251 COMPILER V5.60.0,  pid                                                                04/09/24  12:53:35  PAGE 2   
+
+   58          float PID_Control_Inc(PID* pid,int flag) 
+   59          {
+   60   1          float inc;
+   61   1      
+   62   1          pid->ek = pid->SetValue - pid->ActValue;
+   63   1      //  if(pid->SetValue!=0&& pid->ek<9)
+   64   1      //  {
+   65   1      //  return 0;
+   66   1      //  }
+   67   1          inc = pid->KP * (pid->ek - pid->ek_1) + pid->KI * pid->ek+pid->KD*(pid->ek-2*pid->ek_1+pid->ek_2);
+   68   1      
+   69   1          pid->ek_2 = pid->ek_1; 
+   70   1          pid->ek_1 = pid->ek; 
+   71   1      
+   72   1          if(flag == 1)
+   73   1          {
+   74   2              if(inc > pid->PIDmax)
+   75   2                  inc = pid->PIDmax;
+   76   2              if(inc < pid->PIDmin)
+   77   2                  inc = pid->PIDmin;
+   78   2          }
+   79   1          pid->PIDout = inc;
+   80   1          return inc;
+   81   1      }
+   82          float PID_Control_Pos(PID* pid,int flag) 
+   83          {
+   84   1          float Pos ;
+   85   1      
+   86   1          pid->ek = pid->SetValue - pid->ActValue;
+   87   1          pid->ek_sum += pid->ek;
+   88   1      
+   89   1          Pos = pid->KP * pid->ek + pid->KI * pid->ek_sum + pid->KD * (pid->ek - pid->ek_1);
+   90   1      
+   91   1          pid->ek_2 = pid->ek_1; 
+   92   1          pid->ek_1 = pid->ek; 
+   93   1      
+   94   1          if(flag == 1)
+   95   1          {
+   96   2              if(Pos > pid->PIDmax)
+   97   2                  Pos = pid->PIDmax;
+   98   2              if(Pos < pid->PIDmin)
+   99   2                  Pos = pid->PIDmin;
+  100   2          }
+  101   1          pid->PIDout = Pos;
+  102   1        
+  103   1          return Pos;
+  104   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       699     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =       224     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       240     ------
+C251 COMPILER V5.60.0,  pid                                                                04/09/24  12:53:35  PAGE 3   
+
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,1 @@
+"..\..\lib\zf_bsp\SEEKFREE_DL1B.c" XSMALL INTR2 WARNINGLEVEL (3) BROWSE INCDIR(..\CODE;..\USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\SEEKFREE_DL1B.lst) TABS (2) OBJECT(.\Objects\SEEKFREE_DL1B.obj)

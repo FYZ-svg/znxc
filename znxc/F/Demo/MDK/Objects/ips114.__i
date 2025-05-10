@@ -1,0 +1,1 @@
+"..\CODE\ips114.c" XSMALL INTR2 WARNINGLEVEL (3) BROWSE INCDIR(..\CODE;..\USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\ips114.lst) TABS (2) OBJECT(.\Objects\ips114.obj)

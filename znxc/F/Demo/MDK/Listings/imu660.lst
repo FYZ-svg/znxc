@@ -1,0 +1,52 @@
+C251 COMPILER V5.60.0,  imu660                                                             04/09/24  12:53:35  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE imu660
+OBJECT MODULE PLACED IN .\Objects\imu660.obj
+COMPILER INVOKED BY: D:\keilC251\C251\BIN\C251.EXE ..\CODE\imu660.c XSMALL INTR2 WARNINGLEVEL(3) BROWSE INCDIR(..\CODE;.
+                    -.\USER;..\..\lib\zf_app;..\..\lib\zf_base;..\..\lib\zf_bsp) DEBUG PRINT(.\Listings\imu660.lst) TABS(2) OBJECT(.\Objects\
+                    -imu660.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          //float Single_Angle=0;
+    3          float Single_Angle_Get(void)
+    4          {
+    5   1      //  imu660ra_get_gyro();
+    6   1        //return -(imu660ra_gyro_z * isr_time/ 65.6);
+    7   1          //static float Sum_XXX = 0;
+    8   1        //Sum_XXX = () /** isr_time/ 65.6)*/;
+    9   1        return imu660ra_gyro_z/65.6/45;//Sum_XXX
+   10   1      }
+   11          //float Single_Angle_Get_X(void)
+   12          //{
+   13          ////  imu660ra_get_gyro();
+   14          //  static float Sum_XXX = 0;
+   15          //  Sum_XXX += (imu660ra_gyro_x * isr_time/ 65.6);
+   16          //  return Sum_XXX;
+   17          //}
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =        29     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
